@@ -39,16 +39,45 @@ Suggested milestones for incremental development:
 """
 
 
+def namelist2dict(filename):
+    name_dict = {}
+    name_list = re.findall(r"<td>(\d+)</td><td>(\w+)</td><td>(\w+)</td>", filename)
+    for rank, mail_name, femail_name in name_list:
+        if mail_name not in name_dict:
+            name_dict[mail_name] = rank
+        if femail_name not in name_dict:
+            name_dict[femail_name] = rank
+    return name_dict
+
+def get_year(filename):
+    year_match_obj = re.search(r'Popularity\sin\s(\d\d\d\d)', filename)
+    if year_match_obj is None:
+        raise RuntimeError("There was no match for the YEAR")
+    year = year_match_obj.group(1)
+    return(year)
+
 def extract_names(filename):
     """
     Given a single file name for babyXXXX.html, returns a single list starting
     with the year string followed by the name-rank strings in alphabetical order.
     ['2006', 'Aaliyah 91', Aaron 57', 'Abagail 895', ' ...]
     """
-    names = []
+    with open(filename, 'r') as file_:
+        final = []
+        filename = file_.read()
+        name_dict = namelist2dict(filename)
+        for name, rank in name_dict.items():
+            entry = '{} {}'.format(name,rank)
+            final.append(entry)
+        final.sort()
+        final.insert(0, get_year(filename))
     # +++your code here+++
-    return names
+    return final
 
+def summary(final, filename):
+    with open(filename, 'w+') as file:
+        for name in final:
+            file.write(name + '\n')
 
 def create_parser():
     """Create a cmd line parser object with 2 argument definitions"""
@@ -66,13 +95,13 @@ def main(args):
     parser = create_parser()
     # Run the parser to collect command-line arguments into a NAMESPACE called 'ns'
     ns = parser.parse_args(args)
-
+    
     if not ns:
         parser.print_usage()
         sys.exit(1)
-
+        
     file_list = ns.files
-
+    
     # option flag
     create_summary = ns.summaryfile
 
@@ -81,7 +110,12 @@ def main(args):
     # Use the create_summary flag to decide whether to print the list,
     # or to write the list to a summary file e.g. `baby1990.html.summary`
 
-    # +++your code here+++
+    for file_ in file_list:
+        name_list = extract_names(file_)
+        if create_summary:
+            summary(name_list, file_ + '.summary')
+        else:
+            print('\n'.join(name_list))
 
 
 if __name__ == '__main__':
